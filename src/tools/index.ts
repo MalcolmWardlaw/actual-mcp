@@ -16,6 +16,7 @@ import * as getGroupedCategories from './categories/get-grouped-categories/index
 import * as updateCategoryGroup from './categories/update-category-group/index.js';
 import * as updateCategory from './categories/update-category/index.js';
 import * as getAccounts from './get-accounts/index.js';
+import * as getBudgetMonth from './get-budget-month/index.js';
 import * as getTransactions from './get-transactions/index.js';
 import * as monthlySummary from './monthly-summary/index.js';
 import * as createPayee from './payees/create-payee/index.js';
@@ -26,6 +27,8 @@ import * as createRule from './rules/create-rule/index.js';
 import * as deleteRule from './rules/delete-rule/index.js';
 import * as getRules from './rules/get-rules/index.js';
 import * as updateRule from './rules/update-rule/index.js';
+import * as setBudgetAmount from './set-budget-amount/index.js';
+import * as setBudgetAmounts from './set-budget-amounts/index.js';
 import * as spendingByCategory from './spending-by-category/index.js';
 import * as deleteTransaction from './delete-transaction/index.js';
 import * as updateTransaction from './update-transaction/index.js';
@@ -38,6 +41,7 @@ const readTools = [
   monthlySummary,
   balanceHistory,
   getAccounts,
+  getBudgetMonth,
   getGroupedCategories,
   getPayees,
   getRules,
@@ -56,6 +60,8 @@ const writeTools = [
   createRule,
   updateRule,
   deleteRule,
+  setBudgetAmount,
+  setBudgetAmounts,
   updateTransaction,
   deleteTransaction,
   createTransaction,

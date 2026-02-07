@@ -38,11 +38,15 @@ export async function initActualApi(): Promise<void> {
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
-    await api.init({
-      dataDir,
-      serverURL: process.env.ACTUAL_SERVER_URL,
-      password: process.env.ACTUAL_PASSWORD,
-    });
+
+    const serverURL = process.env.ACTUAL_SERVER_URL;
+    const password = process.env.ACTUAL_PASSWORD;
+
+    if (serverURL && password) {
+      await api.init({ dataDir, serverURL, password });
+    } else {
+      await api.init({ dataDir });
+    }
 
     const budgets: BudgetFile[] = await api.getBudgets();
     if (!budgets || budgets.length === 0) {
@@ -98,7 +102,7 @@ export async function getAccounts(): Promise<APIAccountEntity[]> {
  */
 export async function getCategories(): Promise<APICategoryEntity[]> {
   await initActualApi();
-  return api.getCategories();
+  return api.getCategories() as any;
 }
 
 /**
@@ -142,7 +146,7 @@ export async function getRules(): Promise<RuleEntity[]> {
  */
 export async function createPayee(args: Record<string, unknown>): Promise<string> {
   await initActualApi();
-  return api.createPayee(args);
+  return api.createPayee(args as any);
 }
 
 /**
@@ -166,7 +170,7 @@ export async function deletePayee(id: string): Promise<unknown> {
  */
 export async function createRule(args: Record<string, unknown>): Promise<RuleEntity> {
   await initActualApi();
-  return api.createRule(args);
+  return api.createRule(args as any);
 }
 
 /**
@@ -174,7 +178,7 @@ export async function createRule(args: Record<string, unknown>): Promise<RuleEnt
  */
 export async function updateRule(args: Record<string, unknown>): Promise<RuleEntity> {
   await initActualApi();
-  return api.updateRule(args);
+  return api.updateRule(args as any);
 }
 
 /**
@@ -190,7 +194,7 @@ export async function deleteRule(id: string): Promise<boolean> {
  */
 export async function createCategory(args: Record<string, unknown>): Promise<string> {
   await initActualApi();
-  return api.createCategory(args);
+  return api.createCategory(args as any);
 }
 
 /**
@@ -214,7 +218,7 @@ export async function deleteCategory(id: string): Promise<{ error?: string }> {
  */
 export async function createCategoryGroup(args: Record<string, unknown>): Promise<string> {
   await initActualApi();
-  return api.createCategoryGroup(args);
+  return api.createCategoryGroup(args as any);
 }
 
 /**
@@ -246,7 +250,7 @@ export async function createTransaction(accountId: string, data: TransactionData
  */
 export async function updateTransaction(id: string, data: UpdateTransactionData): Promise<unknown> {
   await initActualApi();
-  return api.updateTransaction(id, data);
+   return api.updateTransaction(id, data as any);
 }
 
 /**
@@ -269,4 +273,49 @@ export async function runBankSync(accountId?: string): Promise<void> {
   await initActualApi();
   // API expects { accountId } object or undefined for all accounts
   return api.runBankSync(accountId ? { accountId } : undefined);
+}
+
+/**
+ * Get all budget data for a specific month (ensures API is initialized)
+ *
+ * @param month - Month in YYYY-MM format (e.g., "2026-01")
+ * @returns Budget data including category groups with budgeted and activity amounts
+ */
+export async function getBudgetMonth(month: string): Promise<any> {
+  await initActualApi();
+  return api.getBudgetMonth(month);
+}
+
+/**
+ * Set the budgeted amount for a category in a specific month (ensures API is initialized)
+ *
+ * @param month - Month in YYYY-MM format (e.g., "2026-01")
+ * @param categoryId - The ID of the category
+ * @param amount - Budget amount in cents (integer)
+ */
+export async function setBudgetAmount(month: string, categoryId: string, amount: number): Promise<void> {
+  await initActualApi();
+  await api.setBudgetAmount(month, categoryId, amount);
+  // Sync changes to ensure they are persisted
+  await api.sync();
+}
+
+/**
+ * Set the budgeted amount for a category without syncing (for batch operations)
+ *
+ * @param month - Month in YYYY-MM format (e.g., "2026-01")
+ * @param categoryId - The ID of the category
+ * @param amount - Budget amount in cents (integer)
+ */
+export async function setBudgetAmountNoSync(month: string, categoryId: string, amount: number): Promise<void> {
+  await initActualApi();
+  await api.setBudgetAmount(month, categoryId, amount);
+}
+
+/**
+ * Sync changes to the server (ensures API is initialized)
+ */
+export async function syncBudget(): Promise<void> {
+  await initActualApi();
+  await api.sync();
 }
