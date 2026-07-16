@@ -6,10 +6,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler, schema } from './index.js';
 import * as actualApi from '../../actual-api.js';
 import { CreateTransactionArgs } from '../../types.js';
+import { textContent } from '../../utils/response.js';
 
 // Mock the actual-api module
 vi.mock('../../actual-api.js', () => ({
   createTransaction: vi.fn(),
+  getPayees: vi.fn(),
 }));
 
 describe('create-transaction tool', () => {
@@ -20,7 +22,7 @@ describe('create-transaction tool', () => {
   describe('schema', () => {
     it('should have correct tool name and description', () => {
       expect(schema.name).toBe('create-transaction');
-      expect(schema.description).toBe('Create a new transaction. Use this to add transactions to accounts.');
+      expect(schema.description).toContain('Create a new transaction');
     });
 
     it('should require account, date, and amount fields', () => {
@@ -38,6 +40,7 @@ describe('create-transaction tool', () => {
       expect(properties).toHaveProperty('notes');
       expect(properties).toHaveProperty('cleared');
       expect(properties).toHaveProperty('subtransactions');
+      expect(properties).toHaveProperty('transfer_account_id');
     });
   });
 
@@ -59,8 +62,8 @@ describe('create-transaction tool', () => {
         amount: 12030,
       });
       expect(result.isError).toBeUndefined();
-      expect(result.content[0].text).toContain('Successfully created transaction');
-      expect(result.content[0].text).toContain(mockTransactionId);
+      expect(textContent(result.content[0])).toContain('Successfully created transaction');
+      expect(textContent(result.content[0])).toContain(mockTransactionId);
     });
 
     it('should create a transaction with all optional fields', async () => {
@@ -120,6 +123,81 @@ describe('create-transaction tool', () => {
     });
   });
 
+  describe('handler - transfer cases', () => {
+    it('should resolve transfer payee and create transfer transaction', async () => {
+      const mockTransactionId = 'transfer-txn-1';
+      vi.mocked(actualApi.getPayees).mockResolvedValue([
+        { id: 'payee-savings', name: 'Transfer: Savings', transfer_acct: 'savings-account-id' },
+        { id: 'payee-checking', name: 'Transfer: Checking', transfer_acct: 'checking-account-id' },
+      ]);
+      vi.mocked(actualApi.createTransaction).mockResolvedValue(mockTransactionId);
+
+      const args: CreateTransactionArgs = {
+        account: 'checking-account-id',
+        date: '2025-12-18',
+        amount: -5000,
+        transfer_account_id: 'savings-account-id',
+      };
+
+      const result = await handler(args);
+
+      expect(actualApi.getPayees).toHaveBeenCalled();
+      expect(actualApi.createTransaction).toHaveBeenCalledWith('checking-account-id', {
+        date: '2025-12-18',
+        amount: -5000,
+        payee: 'payee-savings',
+      });
+      expect(result.isError).toBeUndefined();
+      expect(textContent(result.content[0])).toContain('transfer');
+      expect(textContent(result.content[0])).toContain('counterpart');
+    });
+
+    it('should override payee with transfer payee when transfer_account_id is provided', async () => {
+      const mockTransactionId = 'transfer-txn-2';
+      vi.mocked(actualApi.getPayees).mockResolvedValue([
+        { id: 'payee-savings', name: 'Transfer: Savings', transfer_acct: 'savings-account-id' },
+      ]);
+      vi.mocked(actualApi.createTransaction).mockResolvedValue(mockTransactionId);
+
+      const args: CreateTransactionArgs = {
+        account: 'checking-account-id',
+        date: '2025-12-18',
+        amount: -5000,
+        payee: 'some-other-payee',
+        transfer_account_id: 'savings-account-id',
+      };
+
+      const result = await handler(args);
+
+      // transfer_account_id should override the payee
+      expect(actualApi.createTransaction).toHaveBeenCalledWith('checking-account-id', {
+        date: '2025-12-18',
+        amount: -5000,
+        payee: 'payee-savings',
+      });
+      expect(result.isError).toBeUndefined();
+    });
+
+    it('should return error when transfer payee is not found', async () => {
+      vi.mocked(actualApi.getPayees).mockResolvedValue([
+        { id: 'payee-checking', name: 'Transfer: Checking', transfer_acct: 'checking-account-id' },
+      ]);
+
+      const args: CreateTransactionArgs = {
+        account: 'checking-account-id',
+        date: '2025-12-18',
+        amount: -5000,
+        transfer_account_id: 'nonexistent-account-id',
+      };
+
+      const result = await handler(args);
+
+      expect(result.isError).toBe(true);
+      expect(textContent(result.content[0])).toContain('No transfer payee found');
+      expect(actualApi.createTransaction).not.toHaveBeenCalled();
+    });
+  });
+
   describe('handler - validation errors', () => {
     it('should return error when account is missing', async () => {
       const args = {
@@ -130,7 +208,7 @@ describe('create-transaction tool', () => {
       const result = await handler(args);
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('account');
+      expect(textContent(result.content[0])).toContain('account');
     });
 
     it('should return error when account is not a string', async () => {
@@ -143,7 +221,7 @@ describe('create-transaction tool', () => {
       const result = await handler(args);
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('string');
+      expect(textContent(result.content[0])).toContain('string');
     });
 
     it('should return error when date is missing', async () => {
@@ -155,7 +233,7 @@ describe('create-transaction tool', () => {
       const result = await handler(args);
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('date');
+      expect(textContent(result.content[0])).toContain('date');
     });
 
     it('should return error when date format is invalid', async () => {
@@ -168,7 +246,7 @@ describe('create-transaction tool', () => {
       const result = await handler(args);
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('date must be in YYYY-MM-DD format');
+      expect(textContent(result.content[0])).toContain('date must be in YYYY-MM-DD format');
     });
 
     it('should return error when amount is missing', async () => {
@@ -180,7 +258,7 @@ describe('create-transaction tool', () => {
       const result = await handler(args);
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('amount');
+      expect(textContent(result.content[0])).toContain('amount');
     });
 
     it('should return error when amount is not a number', async () => {
@@ -193,7 +271,7 @@ describe('create-transaction tool', () => {
       const result = await handler(args);
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('number');
+      expect(textContent(result.content[0])).toContain('number');
     });
 
     it('should return error when category is not a string', async () => {
@@ -207,7 +285,7 @@ describe('create-transaction tool', () => {
       const result = await handler(args);
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('string');
+      expect(textContent(result.content[0])).toContain('string');
     });
 
     it('should return error when subtransactions is not an array', async () => {
@@ -221,7 +299,7 @@ describe('create-transaction tool', () => {
       const result = await handler(args);
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('array');
+      expect(textContent(result.content[0])).toContain('array');
     });
 
     it('should return error when subtransaction is missing amount', async () => {
@@ -235,7 +313,7 @@ describe('create-transaction tool', () => {
       const result = await handler(args);
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('amount');
+      expect(textContent(result.content[0])).toContain('amount');
     });
   });
 
@@ -314,7 +392,7 @@ describe('create-transaction tool', () => {
       const result = await handler(args);
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('API connection failed');
+      expect(textContent(result.content[0])).toContain('API connection failed');
     });
   });
 });

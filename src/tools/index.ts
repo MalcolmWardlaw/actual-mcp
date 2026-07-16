@@ -33,6 +33,7 @@ import * as spendingByCategory from './spending-by-category/index.js';
 import * as deleteTransaction from './delete-transaction/index.js';
 import * as updateTransaction from './update-transaction/index.js';
 import * as createTransaction from './create-transaction/index.js';
+import * as importTransactions from './import-transactions/index.js';
 import * as runBankSync from './run-bank-sync/index.js';
 
 const readTools = [
@@ -65,6 +66,7 @@ const writeTools = [
   updateTransaction,
   deleteTransaction,
   createTransaction,
+  importTransactions,
   runBankSync,
 ];
 
@@ -95,7 +97,7 @@ export const setupTools = (server: Server, enableWrite: boolean): void => {
       }
 
       // @ts-expect-error: Argument type is handled by Zod schema validation
-      return tool.handler(args);
+      return await tool.handler(args);
     } catch (err) {
       console.error(`Error executing tool ${request.params.name}:`, err);
       return errorFromCatch(err);

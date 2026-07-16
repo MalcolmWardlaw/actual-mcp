@@ -1,5 +1,71 @@
 # Changelog
 
+## [1.11.3](https://github.com/s-stefanov/actual-mcp/compare/v1.11.2...v1.11.3) (2026-06-02)
+
+
+### Bug Fixes
+
+* **deps:** update dependency zod-to-json-schema to v3.25.2 ([#155](https://github.com/s-stefanov/actual-mcp/issues/155)) ([f4a3e90](https://github.com/s-stefanov/actual-mcp/commit/f4a3e90666605ce95fef3c392e8f459e695c0ab4))
+* prevent infinite recursion in streamableTransport.onclose ([#171](https://github.com/s-stefanov/actual-mcp/issues/171)) ([19d94ad](https://github.com/s-stefanov/actual-mcp/commit/19d94ad71386c5748cf457f1b94bbe0d0d614f8f)), closes [#170](https://github.com/s-stefanov/actual-mcp/issues/170)
+
+## [1.11.2](https://github.com/s-stefanov/actual-mcp/compare/v1.11.1...v1.11.2) (2026-04-03)
+
+
+### Bug Fixes
+
+* **deps:** update dependency zod-to-json-schema to v3.25.2 ([#144](https://github.com/s-stefanov/actual-mcp/issues/144)) ([fb62f91](https://github.com/s-stefanov/actual-mcp/commit/fb62f91857a3ab42fc488f4ddf4198389b61788d))
+* Handling concurrent SSE connections ([#137](https://github.com/s-stefanov/actual-mcp/issues/137)) ([8e9927a](https://github.com/s-stefanov/actual-mcp/commit/8e9927ae702d7b5d8c95035382d27f3ee2d35c29))
+
+## [1.11.1](https://github.com/s-stefanov/actual-mcp/compare/v1.11.0...v1.11.1) (2026-03-09)
+
+
+### Bug Fixes
+
+* create counterpart transaction for transfers by enabling runTransfers ([#139](https://github.com/s-stefanov/actual-mcp/issues/139)) ([8a1661b](https://github.com/s-stefanov/actual-mcp/commit/8a1661b31dc146bc21a24ebc5740e9b44fa496d2))
+
+## [1.11.0](https://github.com/s-stefanov/actual-mcp/compare/v1.10.0...v1.11.0) (2026-03-03)
+
+
+### Features
+
+* update mcp to latest and zod to 4 ([#127](https://github.com/s-stefanov/actual-mcp/issues/127)) ([1472ef2](https://github.com/s-stefanov/actual-mcp/commit/1472ef2499599833294d00cd3718ac222a7f5eaa))
+
+## [1.10.0](https://github.com/s-stefanov/actual-mcp/compare/v1.9.0...v1.10.0) (2026-03-03)
+
+
+### Features
+
+* multibuild for arm and amd ([#126](https://github.com/s-stefanov/actual-mcp/issues/126)) ([63b0941](https://github.com/s-stefanov/actual-mcp/commit/63b0941923b73ddd52581badd8adbdfbd46d3da7))
+* Stabilize API Init/Shutdown and Fix Tool-Call Rejection & Stdio Corruption ([#96](https://github.com/s-stefanov/actual-mcp/issues/96)) ([2e16cfa](https://github.com/s-stefanov/actual-mcp/commit/2e16cfa956b7999e7dc49fac0702eca3343fa1cc))
+* update actual to 26.3 ([#124](https://github.com/s-stefanov/actual-mcp/issues/124)) ([5003cdb](https://github.com/s-stefanov/actual-mcp/commit/5003cdb55d464adb0dcfddbdd4a9178604c2fc74))
+
+
+### Bug Fixes
+
+* **deps:** update dependency dotenv to v17.3.1 ([#121](https://github.com/s-stefanov/actual-mcp/issues/121)) ([5cc4f57](https://github.com/s-stefanov/actual-mcp/commit/5cc4f5743c7005ef1944accfeb371c69fc00df9d))
+* **deps:** update dependency vite-tsconfig-paths to v6 ([#80](https://github.com/s-stefanov/actual-mcp/issues/80)) ([cc4ce34](https://github.com/s-stefanov/actual-mcp/commit/cc4ce340644c18ebde516d9fe83e4c8347d7630a))
+* **deps:** update github artifact actions ([#83](https://github.com/s-stefanov/actual-mcp/issues/83)) ([46fae56](https://github.com/s-stefanov/actual-mcp/commit/46fae56516b90ca1cdb74f8f2c353a60c44b2270))
+* **deps:** update vitest monorepo to v4 ([#84](https://github.com/s-stefanov/actual-mcp/issues/84)) ([426e3e1](https://github.com/s-stefanov/actual-mcp/commit/426e3e147f883f4cb31e5c264e08e393022cc481))
+
+## [1.9.0](https://github.com/s-stefanov/actual-mcp/compare/v1.8.0...v1.9.0) (2026-03-02)
+
+
+### Features
+
+* add import transactions tool ([#117](https://github.com/s-stefanov/actual-mcp/issues/117)) ([ffd7a89](https://github.com/s-stefanov/actual-mcp/commit/ffd7a89ddedd9afaf610b171d2a252858c85d62a))
+
+## [1.8.0](https://github.com/s-stefanov/actual-mcp/compare/v1.7.0...v1.8.0) (2026-03-01)
+
+
+### Features
+
+* fixes applied for version 26.2 ([#105](https://github.com/s-stefanov/actual-mcp/issues/105)) ([de2c184](https://github.com/s-stefanov/actual-mcp/commit/de2c1841daacaf85c26dad16cdbd424fba2413cb))
+
+
+### Bug Fixes
+
+* **deps:** update dependency zod-to-json-schema to v3.25.1 ([#90](https://github.com/s-stefanov/actual-mcp/issues/90)) ([676a379](https://github.com/s-stefanov/actual-mcp/commit/676a379e93a0da23a9b9a9f752bfba34a4f1f2ea))
+
 ## [1.7.0](https://github.com/s-stefanov/actual-mcp/compare/v1.6.0...v1.7.0) (2026-01-17)
 
 

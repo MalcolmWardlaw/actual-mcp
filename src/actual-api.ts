@@ -1,15 +1,11 @@
-import api from '@actual-app/api';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
+import * as api from '@actual-app/api';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import { BudgetFile, TransactionData, UpdateTransactionData } from './types.js';
-import {
-  APIAccountEntity,
-  APICategoryEntity,
-  APICategoryGroupEntity,
-  APIPayeeEntity,
-} from '@actual-app/api/@types/loot-core/src/server/api-models.js';
-import { RuleEntity, TransactionEntity } from '@actual-app/api/@types/loot-core/src/types/models/index.js';
+import { APIAccountEntity, APICategoryEntity, APICategoryGroupEntity, APIPayeeEntity } from '@actual-app/api/models';
+import { RuleEntity, TransactionEntity } from '@actual-app/core/types/models';
+import { ImportTransactionEntity } from '@actual-app/core/types/models/import-transaction';
 
 const DEFAULT_DATA_DIR: string = path.resolve(os.homedir() || '.', '.actual');
 
@@ -32,21 +28,18 @@ export async function initActualApi(): Promise<void> {
     return;
   }
 
+  initializing = true;
   try {
     console.error('Initializing Actual Budget API...');
     const dataDir = process.env.ACTUAL_DATA_DIR || DEFAULT_DATA_DIR;
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
-
     const serverURL = process.env.ACTUAL_SERVER_URL;
     const password = process.env.ACTUAL_PASSWORD;
-
-    if (serverURL && password) {
-      await api.init({ dataDir, serverURL, password });
-    } else {
-      await api.init({ dataDir });
-    }
+    // Reason: InitConfig is a discriminated union in 26.x — NoServerConfig forbids serverURL/password
+    const initConfig = serverURL ? { dataDir, serverURL, password: password ?? '' } : { dataDir };
+    await api.init(initConfig);
 
     const budgets: BudgetFile[] = await api.getBudgets();
     if (!budgets || budgets.length === 0) {
@@ -81,8 +74,13 @@ export async function initActualApi(): Promise<void> {
  */
 export async function shutdownActualApi(): Promise<void> {
   if (!initialized) return;
-  await api.shutdown();
-  initialized = false;
+  try {
+    await api.shutdown();
+  } catch (err) {
+    console.error('Error shutting down Actual Budget API:', err);
+  } finally {
+    initialized = false;
+  }
 }
 
 // ----------------------------
@@ -100,9 +98,9 @@ export async function getAccounts(): Promise<APIAccountEntity[]> {
 /**
  * Get all categories (ensures API is initialized)
  */
-export async function getCategories(): Promise<APICategoryEntity[]> {
+export async function getCategories(): Promise<(APICategoryEntity | APICategoryGroupEntity)[]> {
   await initActualApi();
-  return api.getCategories() as any;
+  return api.getCategories();
 }
 
 /**
@@ -146,7 +144,7 @@ export async function getRules(): Promise<RuleEntity[]> {
  */
 export async function createPayee(args: Record<string, unknown>): Promise<string> {
   await initActualApi();
-  return api.createPayee(args as any);
+  return api.createPayee(args as unknown as Omit<APIPayeeEntity, 'id'>);
 }
 
 /**
@@ -170,7 +168,7 @@ export async function deletePayee(id: string): Promise<unknown> {
  */
 export async function createRule(args: Record<string, unknown>): Promise<RuleEntity> {
   await initActualApi();
-  return api.createRule(args as any);
+  return api.createRule(args as unknown as Omit<RuleEntity, 'id'>);
 }
 
 /**
@@ -178,7 +176,7 @@ export async function createRule(args: Record<string, unknown>): Promise<RuleEnt
  */
 export async function updateRule(args: Record<string, unknown>): Promise<RuleEntity> {
   await initActualApi();
-  return api.updateRule(args as any);
+  return api.updateRule(args as unknown as RuleEntity);
 }
 
 /**
@@ -194,7 +192,7 @@ export async function deleteRule(id: string): Promise<boolean> {
  */
 export async function createCategory(args: Record<string, unknown>): Promise<string> {
   await initActualApi();
-  return api.createCategory(args as any);
+  return api.createCategory(args as unknown as Omit<APICategoryEntity, 'id'>);
 }
 
 /**
@@ -218,7 +216,7 @@ export async function deleteCategory(id: string): Promise<void> {
  */
 export async function createCategoryGroup(args: Record<string, unknown>): Promise<string> {
   await initActualApi();
-  return api.createCategoryGroup(args as any);
+  return api.createCategoryGroup(args as unknown as Omit<APICategoryGroupEntity, 'id'>);
 }
 
 /**
@@ -238,11 +236,25 @@ export async function deleteCategoryGroup(id: string): Promise<unknown> {
 }
 
 /**
- * Create a transaction (ensures API is initialized)
+ * Create a transaction (ensures API is initialized).
+ * Passes runTransfers so that transfer payees automatically create the counterpart transaction.
  */
 export async function createTransaction(accountId: string, data: TransactionData): Promise<string> {
   await initActualApi();
-  return api.addTransactions(accountId, [data]);
+  return api.addTransactions(accountId, [data], { runTransfers: true });
+}
+
+/**
+ * Import a list of transactions using Actual's reconciliation logic.
+ * Deduplicates via imported_id and optionally supports dry-run validation.
+ */
+export async function importTransactions(
+  accountId: string,
+  transactions: ImportTransactionEntity[],
+  opts?: { defaultCleared?: boolean; dryRun?: boolean }
+): Promise<{ added: string[]; updated: string[]; errors: Array<{ message: string }> }> {
+  await initActualApi();
+  return api.importTransactions(accountId, transactions, opts);
 }
 
 /**
@@ -250,7 +262,7 @@ export async function createTransaction(accountId: string, data: TransactionData
  */
 export async function updateTransaction(id: string, data: UpdateTransactionData): Promise<unknown> {
   await initActualApi();
-   return api.updateTransaction(id, data as any);
+  return api.updateTransaction(id, data as unknown as Partial<TransactionEntity>);
 }
 
 /**
@@ -273,49 +285,4 @@ export async function runBankSync(accountId?: string): Promise<void> {
   await initActualApi();
   // API expects { accountId } object or undefined for all accounts
   return api.runBankSync(accountId ? { accountId } : undefined);
-}
-
-/**
- * Get all budget data for a specific month (ensures API is initialized)
- *
- * @param month - Month in YYYY-MM format (e.g., "2026-01")
- * @returns Budget data including category groups with budgeted and activity amounts
- */
-export async function getBudgetMonth(month: string): Promise<any> {
-  await initActualApi();
-  return api.getBudgetMonth(month);
-}
-
-/**
- * Set the budgeted amount for a category in a specific month (ensures API is initialized)
- *
- * @param month - Month in YYYY-MM format (e.g., "2026-01")
- * @param categoryId - The ID of the category
- * @param amount - Budget amount in cents (integer)
- */
-export async function setBudgetAmount(month: string, categoryId: string, amount: number): Promise<void> {
-  await initActualApi();
-  await api.setBudgetAmount(month, categoryId, amount);
-  // Sync changes to ensure they are persisted
-  await api.sync();
-}
-
-/**
- * Set the budgeted amount for a category without syncing (for batch operations)
- *
- * @param month - Month in YYYY-MM format (e.g., "2026-01")
- * @param categoryId - The ID of the category
- * @param amount - Budget amount in cents (integer)
- */
-export async function setBudgetAmountNoSync(month: string, categoryId: string, amount: number): Promise<void> {
-  await initActualApi();
-  await api.setBudgetAmount(month, categoryId, amount);
-}
-
-/**
- * Sync changes to the server (ensures API is initialized)
- */
-export async function syncBudget(): Promise<void> {
-  await initActualApi();
-  await api.sync();
 }
