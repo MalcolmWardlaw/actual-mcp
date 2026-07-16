@@ -29,9 +29,18 @@ async function _buildTransactionLookups(options: TransactionLookupOptions): Prom
   return { payeesById, categoriesById };
 }
 
+function _toTransaction(entity: TransactionEntity): Transaction {
+  return {
+    ...entity,
+    // # Reason: TransactionEntity allows null for payee/category, but our Transaction type uses undefined.
+    payee: entity.payee ?? undefined,
+    category: entity.category ?? undefined,
+  };
+}
+
 async function _enrichTransactions(transactions: TransactionEntity[]): Promise<Transaction[]> {
   if (transactions.length === 0) {
-    return transactions;
+    return [];
   }
 
   // # Reason: Only fetch lookup tables when transactions are missing names to avoid redundant API calls.
@@ -39,7 +48,7 @@ async function _enrichTransactions(transactions: TransactionEntity[]): Promise<T
   const needsCategories = transactions.some((transaction) => Boolean(transaction.category));
 
   if (!needsPayees && !needsCategories) {
-    return transactions;
+    return transactions.map(_toTransaction);
   }
 
   const { payeesById, categoriesById } = await _buildTransactionLookups({
@@ -52,7 +61,7 @@ async function _enrichTransactions(transactions: TransactionEntity[]): Promise<T
     const categoryName =
       needsCategories && transaction.category ? categoriesById[transaction.category]?.name : undefined;
 
-    const enriched: Transaction = { ...transaction };
+    const enriched: Transaction = _toTransaction(transaction);
 
     if (payeeName !== undefined) {
       enriched.payee_name = payeeName;
@@ -80,7 +89,7 @@ export async function fetchAllOnBudgetTransactions(
   start: string,
   end: string
 ): Promise<Transaction[]> {
-  let transactions: Transaction[] = [];
+  let transactions: TransactionEntity[] = [];
   const onBudgetAccounts = accounts.filter((a) => !a.offbudget && !a.closed);
   for (const account of onBudgetAccounts) {
     const tx = await getTransactions(account.id, start, end);
@@ -90,7 +99,7 @@ export async function fetchAllOnBudgetTransactions(
 }
 
 export async function fetchAllTransactions(accounts: Account[], start: string, end: string): Promise<Transaction[]> {
-  let transactions: Transaction[] = [];
+  let transactions: TransactionEntity[] = [];
   for (const account of accounts) {
     const tx = await getTransactions(account.id, start, end);
     transactions = [...transactions, ...tx];
